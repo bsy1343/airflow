@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Airflow DAG 생성기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            background-attachment: fixed;
+            height: 100vh;
+            padding: 3px;
+            color: #e4e4e7;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            height: calc(100vh - 6px);
+            margin: 0 auto;
+            background: rgba(30, 30, 48, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container:hover {
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%);
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            opacity: 0.3;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 4px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .main {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            background: linear-gradient(135deg, #1e1e30 0%, #2a2a40 100%);
+            padding: 12px;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow-y: auto;
+        }
+        
+        .sidebar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.2), transparent);
+        }
+        
+        .content {
+            padding: 12px;
+            overflow-y: auto;
+        }
+        
+        .form-group {
+            margin-bottom: 8px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: #e4e4e7;
+            font-size: 13px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 2px solid #374151;
+            border-radius: 6px;
+            font-size: 13px;
+            background: rgba(30, 30, 48, 0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            color: #e4e4e7;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .form-group input:hover,
+        .form-group select:hover,
+        .form-group textarea:hover {
+            border-color: #4c1d95;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 45px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            background: linear-gradient(135deg, #ccc, #999);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn:disabled::before {
+            display: none;
+        }
+        
+        .preview {
+            background: linear-gradient(135deg, #1e1e30 0%, #2a2a40 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'Monaco', 'Menlo', 'SF Mono', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            height: 1200px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            color: #e4e4e7;
+        }
+        
+        .preview::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .preview::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
+        
+        .preview::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.4);
+            border-radius: 4px;
+        }
+        
+        .preview::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 58, 237, 0.6);
+        }
+        
+        .info {
+            background: linear-gradient(135deg, #1e1e30 0%, #2a2a40 100%);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info h3 {
+            color: #a855f7;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .info p {
+            color: #e4e4e7;
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+        
+        .info code {
+            background: rgba(124, 58, 237, 0.2);
+            color: #a855f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'SF Mono', 'Consolas', monospace;
+            font-size: 12px;
+        }
+        
+        .status {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            transform: translateX(0);
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: slideIn 0.5s ease forwards;
+        }
+        
+        .status.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            box-shadow: 0 4px 12px rgba(21, 87, 36, 0.1);
+        }
+        
+        .status.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            box-shadow: 0 4px 12px rgba(114, 28, 36, 0.1);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .form-group {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(4) { animation-delay: 0.4s; }
+        .form-group:nth-child(5) { animation-delay: 0.5s; }
+        .form-group:nth-child(6) { animation-delay: 0.6s; }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                border-radius: 16px;
+                margin: 0;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .main {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+                padding: 20px;
+            }
+            
+            .sidebar::after {
+                display: none;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .btn {
+                padding: 14px 24px;
+                font-size: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 0.95em;
+            }
+            
+            .sidebar, .content {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Airflow DAG 생성기</h1>
+            <p>브라우저에서 바로 사용하는 DAG 파일 생성기</p>
+        </div>
+        
+        <div class="main">
+            <div class="sidebar">
+                <h2 style="margin-bottom: 24px; font-size: 1.5em; color: #e4e4e7; font-weight: 600;">⚙️ 설정</h2>
+                
+                <div class="form-group">
+                    <label for="filename">📄 파일명</label>
+                    <input type="text" id="filename" placeholder="my_dag.py" value="my_dag.py">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tags">🏷️ 태그 (콤마로 구분)</label>
+                    <input type="text" id="tags" placeholder="tag1, tag2, tag3" value="auto-generated">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">📝 설명</label>
+                    <textarea id="description" placeholder="DAG에 대한 상세한 설명을 입력하세요">자동 생성된 DAG</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="owner">👤 소유자</label>
+                    <input type="text" id="owner" placeholder="홍길동" value="홍길동">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">📧 이메일</label>
+                    <input type="email" id="email" placeholder="admin@kt.com" value="admin@kt.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="schedule_type">⏰ 스케줄 타입</label>
+                    <select id="schedule_type" onchange="toggleScheduleInput()">
+                        <option value="preset">미리 설정된 스케줄</option>
+                        <option value="cron">Cron 표현식</option>
+                        <option value="timedelta">시간 간격</option>
+                        <option value="none">None (수동 실행)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="preset-schedule">
+                    <label for="schedule_preset">⏰ 스케줄</label>
+                    <select id="schedule_preset">
+                        <option value="@daily">@daily (매일)</option>
+                        <option value="@hourly">@hourly (매시간)</option>
+                        <option value="@weekly">@weekly (매주)</option>
+                        <option value="@monthly">@monthly (매월)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="cron-schedule" style="display: none;">
+                    <label for="schedule_cron">⏰ Cron 표현식</label>
+                    <input type="text" id="schedule_cron" placeholder="*/5 * * * *" value="*/5 * * * *" oninput="updateCronDescription()">
+                    <small id="cron-description" style="color: #9ca3af; font-size: 12px; display: block; margin-top: 4px;">5분마다 실행</small>
+                </div>
+                
+                <div class="form-group" id="timedelta-schedule" style="display: none;">
+                    <label for="schedule_timedelta">⏰ 실행 간격 (분)</label>
+                    <input type="number" id="schedule_timedelta" placeholder="60" value="60" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="start_date">📅 시작일</label>
+                    <input type="date" id="start_date">
+                </div>
+                
+                <div class="form-group">
+                    <label for="end_date">🔚 종료일 (선택사항)</label>
+                    <input type="date" id="end_date">
+                </div>
+                
+                <div class="form-group">
+                    <label for="retries">🔄 재시도 횟수</label>
+                    <input type="number" id="retries" placeholder="1" value="1" min="0" max="10">
+                </div>
+                
+                <div class="form-group">
+                    <label for="retry_delay">⏳ 재시도 지연 시간 (분)</label>
+                    <input type="number" id="retry_delay" placeholder="5" value="5" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="max_active_runs">🔢 최대 동시 실행 수</label>
+                    <input type="number" id="max_active_runs" placeholder="1" value="1" min="1">
+                </div>
+                
+                
+                <button class="btn" onclick="generateDAG()">🔄 DAG 생성</button>
+                <button class="btn" onclick="downloadFile()" id="downloadBtn" disabled>💾 파일 다운로드</button>
+                
+                <div class="info">
+                    <h3>💡 사용법</h3>
+                    <p>1. 파일명 입력 (DAG ID 자동 생성)</p>
+                    <p>2. 소유자 및 이메일 정보 입력</p>
+                    <p>3. 스케줄 타입 선택 및 설정</p>
+                    <p>4. 재시도 옵션 및 태그 설정</p>
+                    <p>5. DAG 생성 → 미리보기 확인 → 다운로드</p>
+                </div>
+                
+                <div class="info">
+                    <h3>🔧 생성되는 템플릿 (예시)</h3>
+                    <p>• <strong>Task 1:</strong> 서버 상태 확인</p>
+                    <p>• <strong>Task 2:</strong> 시스템 정보 확인</p>
+                    <p>• <strong>의존성:</strong> Task 1 → Task 2</p>
+                </div>
+                
+                <div class="info">
+                    <h3>⚠️ 사용 전 필수 설정 (예시)</h3>
+                    <p>• Airflow Connection 설정:</p>
+                    <p>  - Connection ID: <code>ssh_default</code></p>
+                    <p>  - SSH 호스트, 사용자, 키 파일 설정</p>
+                </div>
+            </div>
+            
+            <div class="content">
+                <h2 style="margin-bottom: 24px; font-size: 1.5em; color: #e4e4e7; font-weight: 600;">📝 DAG 정보 및 미리보기</h2>
+                
+                <div id="status"></div>
+                
+                <div id="preview" class="preview" style="display: none;"></div>
+                
+                <div id="info-panel">
+                    <p>설정을 입력하고 "DAG 생성" 버튼을 클릭하세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DAG_TEMPLATE = `
+# =============================================================================
+# DAG 파일명: {dag_id}
+# 작성자: {owner}
+# 이메일: {email}
+# 생성일: {generated_date}
+#
+# DAG 설명:
+# {description}
+#
+# 실행 스케줄: {schedule}
+# 재시도 횟수: {retries}회
+# 재시도 간격: {retry_delay}분
+# 최대 동시 실행: {max_active_runs}개
+# =============================================================================
+
+from airflow import DAG
+from airflow.providers.ssh.operators.ssh import SSHOperator
+from datetime import datetime, timedelta
+
+# ==============================================================================
+# DAG 기본 설정
+# ==============================================================================
+
+# 기본 인자 설정 - 모든 태스크에 공통으로 적용
+default_args = {
+    'owner': '{owner}',
+    'depends_on_past': False,
+    'email': ['{email}'],
+    'email_on_failure': True,
+    'email_on_retry': False,
+    'retries': {retries},
+    'retry_delay': timedelta(minutes={retry_delay}),
+    'start_date': datetime({start_year}, {start_month}, {start_day}),
+}
+
+# ==============================================================================
+# DAG 정의
+# ==============================================================================
+
+# DAG 인스턴스 생성
+dag = DAG(
+    dag_id='{dag_id}',
+    description='{description}',
+    default_args=default_args,
+    schedule_interval={schedule},
+    start_date=datetime({start_year}, {start_month}, {start_day}),{end_date_line}
+    catchup=False,
+    max_active_runs={max_active_runs},
+    tags={tags},
+    doc_md=__doc__,
+)
+
+# ==============================================================================
+# 태스크 정의
+# ==============================================================================
+
+# 태스크 1: 서버 상태 확인
+check_host = SSHOperator(
+    task_id='check_host',
+    ssh_conn_id='ssh_default',
+    command='echo "Hello from localhost: $(hostname) at $(date)"',
+    dag=dag,
+)
+
+# 태스크 2: 시스템 정보 확인
+system_info = HttpOperator(
+    task_id='system_info',
+	method='POST',
+	http_conn_id='http_default',
+	headers={'Content-Type': 'application/json'},
+    endpoint='http://localhost:5000/system_info',
+	data=json.dumps({
+        "action": "get_info"
+    }),
+    dag=dag,
+)
+
+# ==============================================================================
+# 태스크 의존성 정의
+# ==============================================================================
+
+# 태스크 실행 순서 정의
+check_host >> system_info
+`;
+
+        let generatedCode = '';
+        let generatedFilename = '';
+
+        function toggleScheduleInput() {
+            const scheduleType = document.getElementById('schedule_type').value;
+            const presetDiv = document.getElementById('preset-schedule');
+            const cronDiv = document.getElementById('cron-schedule');
+            const timeDeltaDiv = document.getElementById('timedelta-schedule');
+            
+            // 모든 스케줄 입력 숨기기
+            presetDiv.style.display = 'none';
+            cronDiv.style.display = 'none';
+            timeDeltaDiv.style.display = 'none';
+            
+            // 선택된 타입에 따라 표시
+            switch(scheduleType) {
+                case 'preset':
+                    presetDiv.style.display = 'block';
+                    break;
+                case 'cron':
+                    cronDiv.style.display = 'block';
+                    break;
+                case 'timedelta':
+                    timeDeltaDiv.style.display = 'block';
+                    break;
+            }
+        }
+
+        function generateDAG() {
+            // 폼 데이터 수집
+            const filename = document.getElementById('filename').value.trim();
+            const owner = document.getElementById('owner').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const scheduleType = document.getElementById('schedule_type').value;
+            const retries = document.getElementById('retries').value;
+            const retryDelay = document.getElementById('retry_delay').value;
+            const tags = document.getElementById('tags').value.trim();
+            const maxActiveRuns = document.getElementById('max_active_runs').value;
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            // 유효성 검사
+            if (!filename) {
+                showStatus('error', '파일명을 입력해주세요.');
+                return;
+            }
+            
+            if (!filename.endsWith('.py')) {
+                showStatus('error', '파일명은 .py 확장자로 끝나야 합니다.');
+                return;
+            }
+            
+            if (!owner) {
+                showStatus('error', '소유자를 입력해주세요.');
+                return;
+            }
+            
+            if (!email) {
+                showStatus('error', '이메일을 입력해주세요.');
+                return;
+            }
+            
+            // DAG ID 생성 (파일명에서 .py 제거)
+            const dagId = filename.replace('.py', '');
+            
+            // 스케줄 처리
+            let schedule;
+            switch(scheduleType) {
+                case 'preset':
+                    schedule = `'${document.getElementById('schedule_preset').value}'`;
+                    break;
+                case 'cron':
+                    const cronValue = document.getElementById('schedule_cron').value.trim();
+                    if (!cronValue) {
+                        showStatus('error', 'Cron 표현식을 입력해주세요.');
+                        return;
+                    }
+                    schedule = `'${cronValue}'`;
+                    break;
+                case 'timedelta':
+                    const minutes = document.getElementById('schedule_timedelta').value;
+                    if (!minutes) {
+                        showStatus('error', '실행 간격을 입력해주세요.');
+                        return;
+                    }
+                    schedule = `timedelta(minutes=${minutes})`;
+                    break;
+                case 'none':
+                    schedule = 'None';
+                    break;
+            }
+            
+            // 태그 처리
+            const tagsList = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+            const tagsFormatted = JSON.stringify(tagsList);
+            
+            // 날짜 처리
+            const startDateObj = new Date(startDate);
+            const startYear = startDateObj.getFullYear();
+            const startMonth = startDateObj.getMonth() + 1;
+            const startDay = startDateObj.getDate();
+            
+            let endDateLine = '';
+            if (endDate) {
+                const endDateObj = new Date(endDate);
+                const endYear = endDateObj.getFullYear();
+                const endMonth = endDateObj.getMonth() + 1;
+                const endDay = endDateObj.getDate();
+                endDateLine = `\n    end_date=datetime(${endYear}, ${endMonth}, ${endDay}),`;
+            }
+            
+            // 현재 날짜
+            const now = new Date();
+            const generatedDate = now.toISOString().split('T')[0];
+            
+            // 코드 생성
+            generatedCode = DAG_TEMPLATE
+                .replace(/{dag_id}/g, dagId)
+                .replace(/{description}/g, description)
+                .replace(/{owner}/g, owner)
+                .replace(/{email}/g, email)
+                .replace(/{generated_date}/g, generatedDate)
+                .replace(/{schedule}/g, schedule)
+                .replace(/{retries}/g, retries)
+                .replace(/{retry_delay}/g, retryDelay)
+                .replace(/{max_active_runs}/g, maxActiveRuns)
+                .replace(/{tags}/g, tagsFormatted)
+                .replace(/{start_year}/g, startYear)
+                .replace(/{start_month}/g, startMonth)
+                .replace(/{start_day}/g, startDay)
+                .replace(/{end_date_line}/g, endDateLine);
+            
+            generatedFilename = filename;
+            
+            // UI 업데이트 - DAG 생성 후에는 미리보기만 표시
+            document.getElementById('preview').textContent = generatedCode;
+            document.getElementById('preview').style.display = 'block';
+            document.getElementById('downloadBtn').disabled = false;
+            
+            // 정보 패널 숨기기
+            document.getElementById('info-panel').style.display = 'none';
+            
+            showStatus('success', '🎉 DAG 파일이 성공적으로 생성되었습니다!');
+        }
+        
+        // 간단한 Python 구문 강조 함수
+        function highlightPython(code) {
+            return code
+                .replace(/^(#.*$)/gm, '<span style="color: #6a9955; font-style: italic;">$1</span>')
+                .replace(/\b(from|import|def|class|if|else|elif|for|while|try|except|finally|with|as|return|yield|break|continue|pass|raise|lambda|and|or|not|in|is|True|False|None)\b/g, '<span style="color: #569cd6;">$1</span>')
+                .replace(/\b(DAG|SSHOperator|BashOperator|PythonOperator|datetime|timedelta)\b/g, '<span style="color: #4ec9b0;">$1</span>')
+                .replace(/(['"])(.*?)\1/g, '<span style="color: #ce9178;">$1$2$1</span>')
+                .replace(/\b(\d+)\b/g, '<span style="color: #b5cea8;">$1</span>');
+        }
+        
+        function downloadFile() {
+            if (!generatedCode) {
+                showStatus('error', '먼저 DAG를 생성해주세요.');
+                return;
+            }
+            
+            const blob = new Blob([generatedCode], {type: 'text/plain;charset=utf-8'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = generatedFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showStatus('success', `💾 ${generatedFilename} 파일이 다운로드되었습니다!`);
+        }
+        
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            // 3초 후 상태 메시지 제거
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.className = '';
+            }, 3000);
+        }
+        
+        // 실시간 미리보기 (옵션)
+        document.getElementById('filename').addEventListener('input', updateInfo);
+        document.getElementById('owner').addEventListener('input', updateInfo);
+        document.getElementById('email').addEventListener('input', updateInfo);
+        document.getElementById('description').addEventListener('input', updateInfo);
+        
+        function updateInfo() {
+            const filename = document.getElementById('filename').value.trim();
+            const owner = document.getElementById('owner').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const dagId = filename.replace('.py', '');
+            
+            if (filename || owner || email) {
+                document.getElementById('info-panel').innerHTML = `
+                    <div class="info">
+                        <h3>📋 현재 설정</h3>
+                        <p><strong>파일명:</strong> ${filename || '미입력'}</p>
+                        <p><strong>DAG ID:</strong> ${dagId || '미입력'}</p>
+                        <p><strong>소유자:</strong> ${owner || '미입력'}</p>
+                        <p><strong>이메일:</strong> ${email || '미입력'}</p>
+                    </div>
+                `;
+            } else {
+                document.getElementById('info-panel').innerHTML = `
+                    <div class="info">
+                        <h3>📋 현재 설정</h3>
+                        <p>설정을 입력하고 "DAG 생성" 버튼을 클릭하세요.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Cron 표현식 설명 업데이트 함수
+        function updateCronDescription() {
+            const cronValue = document.getElementById('schedule_cron').value.trim();
+            const cronDescription = document.getElementById('cron-description');
+            
+            if (!cronValue) {
+                cronDescription.textContent = 'Cron 표현식을 입력하세요';
+                return;
+            }
+            
+            const parts = cronValue.split(' ');
+            if (parts.length !== 5) {
+                cronDescription.textContent = '올바른 Cron 형식: 분 시 일 월 요일 (5개 필드)';
+                return;
+            }
+            
+            const [minute, hour, day, month, dayOfWeek] = parts;
+            
+            // 일반적인 Cron 패턴 해석
+            const descriptions = {
+                '0 0 * * *': '매일 자정 (00:00)에 실행',
+                '0 6 * * *': '매일 오전 6시에 실행',
+                '0 12 * * *': '매일 정오 (12:00)에 실행',
+                '0 18 * * *': '매일 오후 6시에 실행',
+                '0 0 * * 0': '매주 일요일 자정에 실행',
+                '0 0 * * 1': '매주 월요일 자정에 실행',
+                '0 0 1 * *': '매월 1일 자정에 실행',
+                '0 0 1 1 *': '매년 1월 1일 자정에 실행',
+                '*/5 * * * *': '5분마다 실행',
+                '*/10 * * * *': '10분마다 실행',
+                '*/15 * * * *': '15분마다 실행',
+                '*/30 * * * *': '30분마다 실행',
+                '0 */2 * * *': '2시간마다 실행',
+                '0 */4 * * *': '4시간마다 실행',
+                '0 */6 * * *': '6시간마다 실행',
+                '0 */12 * * *': '12시간마다 실행',
+                '0 9 * * 1-5': '평일 오전 9시에 실행',
+                '0 17 * * 1-5': '평일 오후 5시에 실행',
+                '0 0 * * 6,7': '주말 자정에 실행',
+                '0 0 15 * *': '매월 15일 자정에 실행',
+                '0 9-17 * * 1-5': '평일 오전 9시부터 오후 5시까지 매시간 실행'
+            };
+            
+            if (descriptions[cronValue]) {
+                cronDescription.textContent = descriptions[cronValue];
+                return;
+            }
+            
+            // 기본 해석 로직
+            let desc = '';
+            
+            // 분 해석
+            if (minute === '*') {
+                desc += '매분 ';
+            } else if (minute.includes('*/')) {
+                const interval = minute.split('*/')[1];
+                desc += `${interval}분마다 `;
+            } else {
+                desc += `${minute}분에 `;
+            }
+            
+            // 시간 해석
+            if (hour === '*') {
+                desc += '매시간 ';
+            } else if (hour.includes('*/')) {
+                const interval = hour.split('*/')[1];
+                desc += `${interval}시간마다 `;
+            } else {
+                desc += `${hour}시에 `;
+            }
+            
+            // 일 해석
+            if (day === '*') {
+                desc += '매일 ';
+            } else if (day.includes('*/')) {
+                const interval = day.split('*/')[1];
+                desc += `${interval}일마다 `;
+            } else {
+                desc += `${day}일에 `;
+            }
+            
+            // 월 해석
+            if (month === '*') {
+                desc += '매월 ';
+            } else {
+                const months = ['', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+                desc += `${months[parseInt(month)]}에 `;
+            }
+            
+            // 요일 해석
+            if (dayOfWeek !== '*') {
+                const days = ['일', '월', '화', '수', '목', '금', '토'];
+                if (dayOfWeek === '1-5') {
+                    desc += '(평일) ';
+                } else if (dayOfWeek === '6,7' || dayOfWeek === '0,6') {
+                    desc += '(주말) ';
+                } else if (dayOfWeek.includes(',')) {
+                    const dayNumbers = dayOfWeek.split(',');
+                    const dayNames = dayNumbers.map(d => days[parseInt(d)]);
+                    desc += `(${dayNames.join(', ')}) `;
+                } else {
+                    desc += `(${days[parseInt(dayOfWeek)]}) `;
+                }
+            }
+            
+            cronDescription.textContent = desc.trim() + '에 실행';
+        }
+        
+        // 페이지 로드 시 초기 설정
+        function initializePage() {
+            // 시작일을 오늘 날짜로 설정
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            document.getElementById('start_date').value = todayString;
+            
+            // 초기 정보 업데이트
+            updateInfo();
+        }
+        
+        // 페이지 로드 시 초기화
+        initializePage();
+    </script>
+</body>
+</html>
